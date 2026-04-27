@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PBSA Platform · Pipeline Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --olive:#2c2b1e;--cream:#f0ece0;--cream-mid:#e8e3d4;--cream-dark:#d8d2c0;--parchment:#f5f2ea;
+  --gold:#c8a96e;--gold-light:#dfc08a;
+  --text-dark:#1e1d14;--text-mid:#4a4637;--text-muted:#7a7460;--text-dim:#a09880;
+  --red:#c0392b;--red-bg:rgba(192,57,43,0.1);
+  --green:#2d5a3d;--green-bg:rgba(45,90,61,0.12);
+  --amber:#b8830a;--amber-bg:rgba(184,131,10,0.1);
+  --blue:#2a4a6b;--blue-bg:rgba(42,74,107,0.1);
+  --grey:#5a5650;--grey-bg:rgba(90,86,80,0.1);
+  --purple:#5a3d6b;--purple-bg:rgba(90,61,107,0.1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--parchment);color:var(--text-dark);min-height:100vh;}
+
+/* ── GATE ── */
+#gate{position:fixed;inset:0;background:var(--olive);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:32px;}
+.gate-logo{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--cream);letter-spacing:0.05em;}
+.gate-logo em{color:var(--gold);font-style:italic;}
+.gate-box{display:flex;flex-direction:column;align-items:center;gap:12px;width:300px;}
+.gate-label{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-dim);}
+.gate-input{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(200,169,110,0.3);color:var(--cream);padding:12px 16px;font-family:'DM Mono',monospace;font-size:14px;letter-spacing:0.1em;outline:none;text-align:center;transition:border-color 0.2s;}
+.gate-input:focus{border-color:var(--gold);}
+.gate-input::placeholder{color:rgba(200,169,110,0.3);}
+.gate-btn{width:100%;background:var(--gold);border:none;color:var(--olive);padding:12px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;transition:background 0.2s;}
+.gate-btn:hover{background:var(--gold-light);}
+.gate-error{font-size:11px;color:#e07070;letter-spacing:0.05em;display:none;}
+
+/* ── HEADER ── */
+.header{background:var(--olive);padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200;}
+.header-logo{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--cream);}
+.header-logo em{color:var(--gold);font-style:italic;}
+.header-right{display:flex;align-items:center;gap:28px;}
+.header-meta{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(200,185,155,0.5);}
+.header-date{font-size:11px;color:rgba(200,185,155,0.7);}
+.add-btn{background:var(--gold);border:none;color:var(--olive);padding:8px 18px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:background 0.2s;}
+.add-btn:hover{background:var(--gold-light);}
+
+/* ── HERO ── */
+.hero{background:var(--olive);padding:40px 40px 48px;display:flex;align-items:flex-end;justify-content:space-between;gap:40px;}
+.hero-left h1{font-family:'Cormorant Garamond',serif;font-size:56px;font-weight:300;color:var(--cream);line-height:1;}
+.hero-left h1 em{color:var(--gold);font-style:italic;}
+.hero-left .sub{font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(200,185,155,0.5);margin-top:14px;}
+.kpi-grid{display:flex;border:1px solid rgba(200,169,110,0.2);}
+.kpi{padding:18px 28px;border-right:1px solid rgba(200,169,110,0.15);min-width:130px;text-align:center;}
+.kpi:last-child{border-right:none;}
+.kpi-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(200,185,155,0.45);margin-bottom:10px;}
+.kpi-value{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:400;color:var(--cream);line-height:1;}
+.kpi-value.gold{color:var(--gold);}
+.kpi-value.red-val{color:#e08070;}
+.kpi-sub{font-size:10px;color:rgba(200,185,155,0.35);margin-top:5px;}
+.kpi-link{font-size:10px;color:var(--gold);text-decoration:underline;cursor:pointer;margin-top:4px;display:block;}
+
+/* ── LEGEND STRIP ── */
+.kpi-legend{background:rgba(20,19,12,0.95);padding:9px 40px;display:flex;align-items:center;flex-wrap:wrap;gap:0;}
+.kpi-legend-item{font-size:10px;color:rgba(200,185,155,0.5);}
+.kpi-legend-item strong{color:rgba(200,185,155,0.78);font-weight:500;}
+.kpi-legend-sep{color:rgba(200,169,110,0.3);margin:0 14px;}
+
+/* ── TABS ── */
+.tabs-bar{background:var(--olive);border-top:1px solid rgba(200,169,110,0.15);padding:0 40px;display:flex;}
+.tab-btn{padding:16px 4px;margin-right:32px;font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(200,185,155,0.45);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all 0.2s;}
+.tab-btn:hover{color:var(--cream);}
+.tab-btn.active{color:var(--cream);border-bottom-color:var(--gold);font-weight:500;}
+
+/* ── FILTERS ── */
+.filters-bar{background:var(--cream-mid);border-bottom:1px solid var(--cream-dark);padding:14px 40px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.filter-sep{width:1px;height:20px;background:var(--cream-dark);margin:0 6px;}
+.filter-label-sm{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);margin-right:2px;}
+.filter-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.pill-btn{padding:5px 14px;border-radius:999px;border:1px solid var(--cream-dark);background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-muted);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.pill-btn:hover{border-color:var(--text-mid);color:var(--text-dark);}
+.pill-btn.active{background:var(--olive);border-color:var(--olive);color:var(--cream);}
+.pill-btn.city-active{background:var(--text-dark);border-color:var(--text-dark);color:var(--cream);}
+.search-input{padding:5px 14px;border:1px solid var(--cream-dark);background:var(--parchment);font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-dark);outline:none;width:220px;transition:border-color 0.2s;}
+.search-input:focus{border-color:var(--gold);}
+.search-input::placeholder{color:var(--text-dim);}
+.view-toggle{margin-left:auto;display:flex;border:1px solid var(--cream-dark);overflow:hidden;}
+.view-btn{padding:5px 16px;background:none;border:none;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
+.view-btn.active{background:var(--olive);color:var(--cream);}
+.view-btn:first-child{border-right:1px solid var(--cream-dark);}
+
+/* ── MAIN ── */
+.main{padding:32px 40px 60px;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ── STATUS SECTIONS ── */
+.status-section{margin-bottom:36px;}
+.status-heading{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--cream-dark);}
+.status-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.status-heading-text{font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:500;color:var(--text-mid);}
+.status-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);background:var(--cream-mid);border:1px solid var(--cream-dark);padding:1px 8px;border-radius:999px;}
+
+/* ── CARDS ── */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+.deal-card{background:white;border:1px solid var(--cream-dark);padding:22px 22px 18px;transition:box-shadow 0.2s,transform 0.15s;cursor:pointer;}
+.deal-card:hover{box-shadow:0 4px 24px rgba(44,43,30,0.12);transform:translateY(-1px);}
+.deal-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;}
+.deal-address{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:var(--text-dark);line-height:1.2;padding-right:8px;}
+.deal-status-pill{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:3px 10px;border-radius:999px;font-weight:500;white-space:nowrap;flex-shrink:0;}
+.pill-acquired{background:var(--green-bg);color:var(--green);border:1px solid rgba(45,90,61,0.2);}
+.pill-exclusivity{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(184,131,10,0.2);}
+.pill-advanced{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(42,74,107,0.2);}
+.pill-early{background:rgba(160,152,128,0.12);color:var(--text-mid);border:1px solid rgba(160,152,128,0.25);}
+.pill-hold{background:var(--grey-bg);color:var(--grey);border:1px solid rgba(90,86,80,0.2);}
+.pill-lost{background:var(--red-bg);color:var(--red);border:1px solid rgba(192,57,43,0.2);}
+.pill-potential{background:var(--purple-bg);color:var(--purple);border:1px solid rgba(90,61,107,0.2);}
+.pill-declined{background:var(--grey-bg);color:var(--grey);border:1px solid rgba(90,86,80,0.2);}
+.deal-location{font-size:12px;color:var(--text-muted);margin-bottom:16px;display:flex;align-items:center;gap:5px;}
+.deal-location::before{content:'◆';font-size:7px;color:var(--gold);}
+.deal-location strong{color:var(--text-mid);font-weight:500;}
+.deal-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+.metric-box{background:var(--parchment);border:1px solid var(--cream-dark);padding:10px 10px 8px;}
+.metric-label{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:5px;}
+.metric-value{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--text-dark);line-height:1;}
+.metric-sub{font-size:10px;color:var(--text-dim);margin-top:3px;}
+.deal-tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.tag{font-size:10px;padding:2px 9px;border-radius:999px;border:1px solid var(--cream-dark);color:var(--text-muted);background:var(--parchment);}
+.tag.gold-tag{border-color:rgba(200,169,110,0.35);color:var(--gold);background:rgba(200,169,110,0.07);}
+.deal-intake{margin-left:auto;font-size:11px;color:var(--text-dim);}
+.deal-notes{margin-top:12px;padding:8px 10px;background:rgba(200,169,110,0.06);border-left:2px solid var(--gold);font-size:11px;color:var(--text-muted);line-height:1.5;font-style:italic;}
+.card-hint{margin-top:12px;font-size:10px;color:var(--text-dim);letter-spacing:0.05em;text-align:right;opacity:0;transition:opacity 0.2s;}
+.deal-card:hover .card-hint{opacity:1;}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;border:1px solid var(--cream-dark);background:white;}
+table{width:100%;border-collapse:collapse;min-width:900px;}
+thead tr{background:var(--cream-mid);border-bottom:1px solid var(--cream-dark);}
+th{padding:10px 14px;text-align:left;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);font-weight:500;white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--cream-mid);transition:background 0.12s;cursor:pointer;}
+tbody tr:hover{background:var(--parchment);}
+tbody tr:last-child{border-bottom:none;}
+td{padding:11px 14px;font-size:13px;color:var(--text-dark);vertical-align:middle;}
+td.muted{color:var(--text-muted);font-size:12px;}
+td.right{text-align:right;font-variant-numeric:tabular-nums;}
+.tbl-section td{background:var(--cream-mid);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);padding:6px 14px;border-top:1px solid var(--cream-dark);cursor:default;}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(20,19,12,0.65);z-index:1000;display:none;align-items:center;justify-content:center;padding:24px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--parchment);width:100%;max-width:680px;max-height:90vh;overflow-y:auto;position:relative;animation:modalIn 0.22s ease;}
+@keyframes modalIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.modal-header{background:var(--olive);padding:28px 32px 24px;position:relative;}
+.modal-close{position:absolute;top:20px;right:24px;background:none;border:none;color:rgba(200,185,155,0.5);font-size:20px;cursor:pointer;line-height:1;padding:4px 8px;transition:color 0.2s;}
+.modal-close:hover{color:var(--cream);}
+.modal-status-pill{display:inline-block;margin-bottom:10px;}
+.modal-address{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--cream);line-height:1.15;}
+.modal-location{font-size:12px;color:rgba(200,185,155,0.55);margin-top:6px;display:flex;align-items:center;gap:6px;}
+.modal-location::before{content:'◆';font-size:7px;color:var(--gold);}
+.modal-body{padding:28px 32px;}
+
+/* Financials highlight row */
+.modal-fin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
+.modal-fin-box{background:white;border:1px solid var(--cream-dark);padding:14px 14px 12px;}
+.modal-fin-label{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;}
+.modal-fin-value{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--text-dark);line-height:1;}
+.modal-fin-sub{font-size:10px;color:var(--text-dim);margin-top:3px;}
+
+/* Details grid */
+.modal-section-title{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--cream-dark);}
+.modal-details-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:24px;border:1px solid var(--cream-dark);background:white;}
+.modal-detail-row{display:contents;}
+.modal-detail-item{padding:10px 16px;border-bottom:1px solid var(--cream-mid);border-right:1px solid var(--cream-mid);}
+.modal-detail-item:nth-child(even){border-right:none;}
+.modal-detail-label{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px;}
+.modal-detail-value{font-size:13px;color:var(--text-dark);font-weight:400;}
+.modal-detail-value.empty{color:var(--text-dim);font-style:italic;font-size:12px;}
+
+/* Bed split */
+.modal-bed-split{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;}
+.modal-bed-box{background:white;border:1px solid var(--cream-dark);padding:12px 14px;text-align:center;}
+.modal-bed-num{font-family:'Cormorant Garamond',serif;font-size:26px;color:var(--text-dark);line-height:1;}
+.modal-bed-lbl{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin-top:4px;}
+
+/* Notes */
+.modal-notes{background:rgba(200,169,110,0.07);border-left:3px solid var(--gold);padding:12px 16px;font-size:12px;color:var(--text-mid);line-height:1.6;font-style:italic;}
+
+/* ── NEXT ACTIONS ── */
+.actions-intro{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:20px;}
+.actions-intro-text h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--text-dark);}
+.actions-intro-text p{font-size:12px;color:var(--text-muted);margin-top:4px;line-height:1.6;}
+.rag-legend-row{display:flex;gap:16px;flex-shrink:0;align-items:center;}
+.rag-leg-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text-muted);}
+.rag-filter-strip{display:flex;gap:8px;margin-bottom:20px;}
+.rag-pill-btn{display:flex;align-items:center;gap:7px;padding:6px 16px;border:1px solid var(--cream-dark);background:white;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-muted);cursor:pointer;transition:all 0.15s;border-radius:999px;}
+.rag-pill-btn:hover{border-color:var(--text-mid);color:var(--text-dark);}
+.rag-pill-btn.rag-active-all{background:var(--olive);border-color:var(--olive);color:var(--cream);}
+.rag-pill-btn.rag-active-red{background:var(--red-bg);border-color:var(--red);color:var(--red);}
+.rag-pill-btn.rag-active-amber{background:var(--amber-bg);border-color:var(--amber);color:var(--amber);}
+.rag-pill-btn.rag-active-green{background:var(--green-bg);border-color:#4a9e6b;color:#2d5a3d;}
+.rag-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.rag-green{background:#4a9e6b;box-shadow:0 0 4px rgba(74,158,107,0.5);}
+.rag-amber{background:var(--amber);box-shadow:0 0 4px rgba(184,131,10,0.5);}
+.rag-red{background:var(--red);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 4px rgba(192,57,43,0.4);}50%{box-shadow:0 0 10px rgba(192,57,43,0.7);}}
+.actions-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+.action-card{background:white;border:1px solid var(--cream-dark);padding:20px;position:relative;transition:box-shadow 0.2s;}
+.action-card:hover{box-shadow:0 2px 16px rgba(44,43,30,0.08);}
+.action-stripe{position:absolute;left:0;top:0;bottom:0;width:4px;}
+.stripe-red{background:var(--red);}
+.stripe-amber{background:var(--amber);}
+.stripe-green{background:#4a9e6b;}
+.action-body{padding-left:12px;}
+.action-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;}
+.action-addr{font-family:'Cormorant Garamond',serif;font-size:17px;color:var(--text-dark);line-height:1.2;}
+.action-city-txt{font-size:11px;color:var(--text-muted);margin-bottom:12px;}
+.action-rag-badge{display:flex;align-items:center;gap:5px;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;flex-shrink:0;}
+.action-text-box{background:var(--parchment);border:1px solid var(--cream-dark);padding:10px 12px;font-size:12px;color:var(--text-mid);line-height:1.6;margin-bottom:12px;min-height:50px;font-style:italic;}
+.action-text-box.empty{color:var(--text-dim);font-style:normal;font-size:11px;}
+.action-footer{display:flex;align-items:center;gap:8px;}
+.action-beds-txt{font-size:11px;color:var(--text-dim);}
+.empty-state{text-align:center;padding:60px 20px;border:1px dashed var(--cream-dark);background:white;grid-column:1/-1;}
+.empty-state p{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--text-muted);margin-bottom:6px;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--cream-mid);}
+::-webkit-scrollbar-thumb{background:var(--cream-dark);}
+</style>
+</head>
+<body>
+
+<!-- GATE -->
+<div id="gate">
+  <div class="gate-logo">PBSA <em>Platform</em></div>
+  <div class="gate-box">
+    <div class="gate-label">Enter Access Password</div>
+    <input class="gate-input" id="pwInput" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="gate-btn" onclick="checkPw()">Access Tracker</button>
+    <div class="gate-error" id="pwError">Incorrect password. Please try again.</div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">PBSA <em>Platform</em></div>
+  <div class="header-right">
+    <span class="header-meta">Pipeline Tracker</span>
+    <span class="header-date" id="headerDate"></span>
+    <button class="add-btn">+ Add Deal</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-left">
+    <h1>PBSA <em>Pipeline</em></h1>
+    <div class="sub">KATCH · VALPRE CAPITAL · CKC PROPERTIES</div>
+  </div>
+  <div class="kpi-grid" id="kpiGrid"></div>
+</div>
+
+<!-- LEGEND -->
+<div class="kpi-legend">
+  <span class="kpi-legend-item">⬡ <strong>Total Beds</strong> — all live pipeline deals, excl. lost &amp; declined</span>
+  <span class="kpi-legend-sep">·</span>
+  <span class="kpi-legend-item">⬡ <strong>Equity Required</strong> — active deals only (Acquired, Exclusivity, Advanced, Early Stage); On Hold excluded</span>
+  <span class="kpi-legend-sep">·</span>
+  <span class="kpi-legend-item">⬡ <strong>Declined</strong> — Declined Opportunities only; Lost shown separately in Declined &amp; Lost tab</span>
+</div>
+
+<!-- TABS -->
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="switchTab('pipeline',this)">Pipeline</button>
+  <button class="tab-btn" onclick="switchTab('declined',this)">Declined &amp; Lost</button>
+  <button class="tab-btn" onclick="switchTab('actions',this)">Next Actions</button>
+</div>
+
+<!-- PIPELINE FILTERS -->
+<div class="filters-bar" id="mainFilters">
+  <span class="filter-label-sm">Status</span>
+  <div class="filter-group" id="statusPills">
+    <button class="pill-btn active" onclick="setStatus('All',this)">All</button>
+    <button class="pill-btn" onclick="setStatus('Acquired',this)">Acquired</button>
+    <button class="pill-btn" onclick="setStatus('Exclusivity',this)">Exclusivity</button>
+    <button class="pill-btn" onclick="setStatus('Advanced Discussions',this)">Advanced</button>
+    <button class="pill-btn" onclick="setStatus('Early Discussions',this)">Early Stage</button>
+    <button class="pill-btn" onclick="setStatus('Potential Opportunities',this)">Potential</button>
+    <button class="pill-btn" onclick="setStatus('On Hold',this)">On Hold</button>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group" id="cityPills">
+    <button class="pill-btn" onclick="setCity('London',this)">London</button>
+    <button class="pill-btn" onclick="setCity('Bristol',this)">Bristol</button>
+    <button class="pill-btn" onclick="setCity('Other',this)">Other</button>
+  </div>
+  <div class="filter-sep"></div>
+  <input class="search-input" id="searchInput" type="text" placeholder="Search by address, area…" oninput="applyFilters()">
+  <div class="view-toggle">
+    <button class="view-btn active" id="cardsBtn" onclick="setView('cards')">Cards</button>
+    <button class="view-btn" id="tableBtn" onclick="setView('table')">Table</button>
+  </div>
+</div>
+
+<!-- DECLINED FILTERS -->
+<div class="filters-bar" id="decFilters" style="display:none">
+  <span class="filter-label-sm">City</span>
+  <div class="filter-group" id="decCityPills">
+    <button class="pill-btn active" onclick="setDecCity('All',this)">All</button>
+    <button class="pill-btn" onclick="setDecCity('London',this)">London</button>
+    <button class="pill-btn" onclick="setDecCity('Bristol',this)">Bristol</button>
+    <button class="pill-btn" onclick="setDecCity('Edinburgh',this)">Edinburgh</button>
+    <button class="pill-btn" onclick="setDecCity('Glasgow',this)">Glasgow</button>
+    <button class="pill-btn" onclick="setDecCity('Leeds',this)">Leeds</button>
+    <button class="pill-btn" onclick="setDecCity('Newcastle',this)">Newcastle</button>
+  </div>
+  <input class="search-input" id="decSearch" type="text" placeholder="Search…" oninput="applyDeclinedFilters()" style="margin-left:auto">
+</div>
+
+<!-- CONTENT -->
+<div class="main">
+  <div class="tab-panel active" id="tab-pipeline">
+    <div id="cardsView"></div>
+    <div id="tableView" style="display:none">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Status</th><th>Address</th><th>City / Area</th><th>Beds</th><th>Land Price</th>
+            <th>Total Cost</th><th>GDV</th><th>Equity</th><th>YoC</th>
+            <th>Developer</th><th>Intake</th><th>Planning</th>
+          </tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-declined">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Status</th><th>Address</th><th>City</th><th>Area</th><th>Beds</th>
+          <th>Deal Type</th><th>Seller / Partner</th><th>Land Price</th>
+        </tr></thead>
+        <tbody id="declinedBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-actions">
+    <div class="actions-intro">
+      <div class="actions-intro-text">
+        <h2>Next Actions</h2>
+        <p>Track what needs to happen on each active deal.<br>Populate via the shared Google Sheet once connected.</p>
+      </div>
+      <div class="rag-legend-row">
+        <div class="rag-leg-item"><span class="rag-dot rag-red"></span>Urgent</div>
+        <div class="rag-leg-item"><span class="rag-dot rag-amber"></span>Needs Attention</div>
+        <div class="rag-leg-item"><span class="rag-dot rag-green"></span>In Hand</div>
+      </div>
+    </div>
+    <div class="rag-filter-strip">
+      <button class="rag-pill-btn rag-active-all" id="ragAll" onclick="filterActions('all',this)">All Deals</button>
+      <button class="rag-pill-btn" id="ragRed" onclick="filterActions('red',this)"><span class="rag-dot rag-red"></span>Urgent</button>
+      <button class="rag-pill-btn" id="ragAmber" onclick="filterActions('amber',this)"><span class="rag-dot rag-amber"></span>Needs Attention</button>
+      <button class="rag-pill-btn" id="ragGreen" onclick="filterActions('green',this)"><span class="rag-dot rag-green"></span>In Hand</button>
+    </div>
+    <div class="actions-cards" id="actionsCards"></div>
+  </div>
+</div>
+
+<!-- DEAL MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modalBox">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+      <div class="modal-status-pill" id="modalPill"></div>
+      <div class="modal-address" id="modalAddress"></div>
+      <div class="modal-location" id="modalLocation"></div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const liveDeals = [
+  {status:"Acquired",              marketing:"Off market", city:"London - Zone 1", neighbourhood:"Elephant & Castle",    address:"5-9 Rockingham Street",        ptal:"PTAL 6b", beds:244, studios:206, ensuite:38,  developer:"CKC Properties",                  intake:2028, landPrice:30750000, totalCost:105000000, gdv:149000000, equity:24000000, yoc:0.065,  planning:"Consented",           type:"Ground up Development",       gateway:"Obtained",       seller:"Alumrose",              gia:81023,                              notes:""},
+  {status:"Exclusivity",           marketing:"Off market", city:"London - Zone 2", neighbourhood:"Southwark",            address:"301 Ilderton Road",             ptal:"PTAL 3",  beds:241, studios:183, ensuite:58,  developer:"CKC Properties",                  intake:2029, landPrice:9000000,  totalCost:74000000,  gdv:88000000,  equity:18000000, yoc:0.0603, planning:"Consented",           type:"Ground up Development",       gateway:"To be Obtained", seller:"Tribe Student Housing / YourTRIBE", gia:87037,      notes:""},
+  {status:"Exclusivity",           marketing:"Off market", city:"London - Zone 2", neighbourhood:"Camden Town",          address:"180 Arlington Road",            ptal:"PTAL 6a", beds:244, studios:244, ensuite:0,   developer:"CKC Properties",                  intake:2030, landPrice:34000000, totalCost:132000000, gdv:161000000, equity:32000000, yoc:0.0617, planning:"Consented",           type:"Ground up Development",       gateway:"To be Obtained", seller:"Camden Vision",                     gia:102031,                         notes:"Includes leisure and retail, excluding affordable"},
+  {status:"Advanced Discussions",  marketing:"Off market", city:"Bristol",         neighbourhood:"City Center",          address:"Spectrum",                      ptal:"",        beds:387, studios:null, ensuite:92,  developer:"Melburg Capital",                  intake:2028, landPrice:null,     totalCost:null,      gdv:null,      equity:null,     yoc:null,   planning:"",                    type:"Office-to-PBSA conversion",   gateway:"Not applicable", seller:"",                                      notes:""},
+  {status:"Advanced Discussions",  marketing:"On market",  city:"Guildford",       neighbourhood:"Guildford",            address:"The Arches",                    ptal:"",        beds:330, studios:94,  ensuite:236, developer:"Watkin Jones",                     intake:2028, landPrice:5000000,   totalCost:63000000,  gdv:75000000,  equity:17000000, yoc:null,   planning:"Consented",           type:"Ground up Development",       gateway:"Not applicable", seller:"Watkin Jones Group",                    notes:""},
+  {status:"Advanced Discussions",  marketing:"Off market", city:"Bristol",         neighbourhood:"City Center",          address:"Rupert Street, NCP",            ptal:"",        beds:328, studios:120, ensuite:208, developer:"CKC Properties",                  intake:2030, landPrice:8000000,  totalCost:67000000,  gdv:80000000,  equity:23000000, yoc:0.0697, planning:"Consented",           type:"Ground up Development",       gateway:"To be Obtained", seller:"Global Mutual",                         notes:"Consent includes 249 studios + 2 ground floor commercial units + 400 car spaces floors 1–6"},
+  {status:"Advanced Discussions",  marketing:"Off market", city:"London - Zone 2", neighbourhood:"Hammersmith",          address:"2 Queen Caroline Street W6 9DX",ptal:"PTAL 6b", beds:179, studios:62,  ensuite:117, developer:"RENU DM",                          intake:2030, landPrice:9500000,  totalCost:65000000,  gdv:80000000,  equity:17000000, yoc:null,   planning:"Subject to Planning", type:"Ground up Development",       gateway:"To be Obtained", seller:"Royal London Mutual Insurance Society", gia:76349, notes:"Imperial Nomination Agreement for 100 units"},
+  {status:"Early Discussions",     marketing:"On market",  city:"London - Zone 2", neighbourhood:"Elephant & Castle",    address:"14 Dante Road",                 ptal:"PTAL 5",  beds:361, studios:168, ensuite:193, developer:"CKC Properties",                  intake:2028, landPrice:40000000, totalCost:80000000,  gdv:100000000, equity:24000000, yoc:null,   planning:"Consented",           type:"Heavy Refurbishment",         gateway:"Not applicable", seller:"Southbank University",              gia:112055,                  notes:""},
+  {status:"Early Discussions",     marketing:"Off market", city:"London - Zone 2", neighbourhood:"Whitechapel",          address:"93-97 Mile End Road",           ptal:"PTAL 6a", beds:291, studios:114, ensuite:177, developer:"RENU DM",                          intake:2030, landPrice:25000000, totalCost:80000000,  gdv:100000000, equity:24000000, yoc:null,   planning:"Subject to Planning", type:"Ground up Development",       gateway:"To be Obtained", seller:"Valor Genesis Limited",             gia:103430,                 notes:"Planning includes replacement cinema 4-screen 447 seats"},
+  {status:"Early Discussions",     marketing:"Off market", city:"London - Zone 2", neighbourhood:"Lambeth",              address:"409 Kennington Road",           ptal:"PTAL 6a", beds:191, studios:124, ensuite:67,  developer:"CKC Properties",                  intake:2031, landPrice:15000000, totalCost:65000000,  gdv:80000000,  equity:18000000, yoc:null,   planning:"Subject to Planning", type:"Planning / PBSA development", gateway:"To be Obtained", seller:"Standard Securities",                   notes:""},
+  {status:"Early Discussions",     marketing:"",           city:"Bristol",         neighbourhood:"Redcliff",             address:"St. Thomas Street",             ptal:"",        beds:282, studios:null, ensuite:null,developer:"",                                intake:null, landPrice:null,     totalCost:null,      gdv:null,      equity:null,     yoc:null,   planning:"",                    type:"Operational PBSA",            gateway:"",               seller:"University of Bristol",                 notes:""},
+  {status:"On Hold",               marketing:"Off market", city:"London - Zone 1", neighbourhood:"Elephant & Castle",    address:"31 Amelia Street",              ptal:"PTAL 6b", beds:146, studios:118, ensuite:28,  developer:"HG Living",                       intake:2029, landPrice:13000000, totalCost:56000000,  gdv:70000000,  equity:14000000, yoc:0.0617, planning:"Consented",           type:"Ground up Development",       gateway:"To be Obtained", seller:"Imperial Land Ltd",                     notes:""},
+  {status:"On Hold",               marketing:"Off market", city:"Bristol",         neighbourhood:"Redcliff",             address:"54-56 Redcliff Street",         ptal:"",        beds:199, studios:null, ensuite:null,developer:"HG Living",                       intake:null, landPrice:null,     totalCost:null,      gdv:null,      equity:null,     yoc:null,   planning:"",                    type:"PBSA redevelopment",          gateway:"",               seller:"",                                      notes:""},
+  {status:"Potential Opportunities",marketing:"Off market", city:"London - Zone 1", neighbourhood:"Holborn",             address:"22 Kingsway",                   ptal:"PTAL 6b", beds:375, studios:null, ensuite:null,developer:"CKC Properties",                  intake:2028, landPrice:80000000, totalCost:null,      gdv:null,      equity:null,     yoc:null,   planning:"Consented",           type:"Office-to-PBSA conversion",   gateway:"Not applicable", seller:"",                                      notes:""},
+  {status:"Potential Opportunities",marketing:"Off market", city:"London - Zone 2", neighbourhood:"Battersea",           address:"Battersea Park Road",           ptal:"PTAL 5",  beds:762, studios:237, ensuite:525, developer:"Watkin Jones",                     intake:2029, landPrice:null,     totalCost:null,      gdv:300000000, equity:null,     yoc:null,   planning:"",                    type:"",                            gateway:"",               seller:"",                                      notes:""},
+  {status:"Potential Opportunities",marketing:"Off market", city:"London - Zone 2", neighbourhood:"Camden",              address:"Hawley Crescent",               ptal:"PTAL 6a", beds:220, studios:220, ensuite:0,   developer:"",                                intake:null, landPrice:null,     totalCost:null,      gdv:null,      equity:null,     yoc:null,   planning:"Subject to Planning", type:"Ground up Development",       gateway:"",               seller:"",                                      notes:""},
+];
+
+const declinedDeals = [
+  {status:"Declined", city:"Bristol",        area:"Temple Meads",              address:"",                beds:350,  type:"PBSA development",                   seller:"CKC / Smart Urban Living Bristol (One) Ltd",   landPrice:null},
+  {status:"Declined", city:"Bristol",        area:"Temple Meads",              address:"Albert Road",     beds:530,  type:"Planning / PBSA development",        seller:"Cubex Land + Alara Investments",        landPrice:null},
+  {status:"Declined", city:"Edinburgh",      area:"",                          address:"23 Yeaman Place", beds:148,  type:"Planning / PBSA development",        seller:"CA Student Living",                    landPrice:null},
+  {status:"Declined", city:"Glasgow",        area:"",                          address:"",                beds:509,  type:"Forward funding / PBSA development", seller:"Galliard Homes + Apsley House Capital", landPrice:null},
+  {status:"Declined", city:"Leeds",          area:"",                          address:"",                beds:287,  type:"Office-to-PBSA conversion",          seller:"Global Mutual + Patron Capital",        landPrice:null},
+  {status:"Declined", city:"London",         area:"Westminster",               address:"",                beds:151,  type:"",                                   seller:"",                                     landPrice:null},
+  {status:"Declined", city:"London",         area:"St Johns Wood / Swiss Cottage", address:"",           beds:"600-700", type:"",                                   seller:"",                                     landPrice:null},
+  {status:"Declined", city:"London",         area:"Hackney Wick",              address:"Berkshire Road",  beds:null, type:"",                                   seller:"",                                     landPrice:null},
+  {status:"Declined", city:"London",         area:"Lewisham",                  address:"5-9 Creekside",   beds:231,  type:"Planning / PBSA development",        seller:"Fifth State + CA Ventures",            landPrice:null},
+  {status:"Declined", city:"London",         area:"Woolwich",                  address:"",                beds:null, type:"Conversion / mixed-use redevelopment",seller:"CityInc",                             landPrice:null},
+  {status:"Declined", city:"London",         area:"Kentish Town",              address:"",                beds:null, type:"",                                   seller:"",                                     landPrice:null},
+  {status:"Declined", city:"London",         area:"Kensal",                    address:"Kensal Road",     beds:220,  type:"PBSA development",                   seller:"Thorstone Land & Property Ltd",        landPrice:null},
+  {status:"Declined", city:"Newcastle",      area:"",                          address:"",                beds:null, type:"",                                   seller:"",                                     landPrice:null},
+  {status:"Lost",     city:"London",         area:"Euston",                    address:"William Road",    beds:206,  type:"",                                   seller:"",                                     landPrice:30000000},
+  {status:"Lost",     city:"London - Zone 1",area:"Southwark",                 address:"200 Union Street",beds:200,  type:"",                                   seller:"CKC Properties",                       landPrice:22500000},
+];
+
+const nextActions = [
+  {address:"301 Ilderton Road",          city:"London Z2 · Southwark",  status:"Exclusivity",         beds:241, rag:"red",   action:""},
+  {address:"180 Arlington Road",         city:"London Z2 · Camden",     status:"Exclusivity",         beds:244, rag:"red",   action:""},
+  {address:"Rupert Street, NCP",         city:"Bristol · City Center",  status:"Advanced Discussions",beds:328, rag:"red",   action:""},
+  {address:"Spectrum",                   city:"Bristol · City Center",  status:"Advanced Discussions",beds:387, rag:"amber", action:""},
+  {address:"The Arches",                 city:"Guildford",              status:"Advanced Discussions",beds:330, rag:"amber", action:""},
+  {address:"2 Queen Caroline Street W6", city:"London Z2 · Hammersmith",status:"Advanced Discussions",beds:179, rag:"amber", action:""},
+  {address:"14 Dante Road",              city:"London Z2 · E&C",        status:"Early Discussions",   beds:361, rag:"amber", action:""},
+  {address:"93-97 Mile End Road",        city:"London Z2 · Whitechapel",status:"Early Discussions",   beds:291, rag:"green", action:""},
+  {address:"409 Kennington Road",        city:"London Z2 · Lambeth",    status:"Early Discussions",   beds:191, rag:"green", action:""},
+  {address:"St. Thomas Street",          city:"Bristol · Redcliff",     status:"Early Discussions",   beds:282, rag:"green", action:""},
+  {address:"5-9 Rockingham Street",      city:"London Z1 · E&C",        status:"Acquired",            beds:244, rag:"green", action:""},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let activeStatus = 'All', activeCity = 'All', currentView = 'cards', decActiveCity = 'All';
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function fmt(n){if(n==null)return'—';if(n>=1e9)return'£'+(n/1e9).toFixed(1)+'bn';if(n>=1e6)return'£'+(n/1e6).toFixed(0)+'M';if(n>=1e3)return'£'+(n/1e3).toFixed(0)+'k';return'£'+n;}
+function fmtFull(n){if(n==null)return'—';return'£'+n.toLocaleString();}
+function fmtYoc(v){return v?(v*100).toFixed(2)+'%':'—';}
+function or(v){return(v!=null&&v!=='')?(typeof v==='number'?v:v):'—';}
+function val(v){return(v!=null&&v!=='') ? v : null;}
+
+function pillCls(s){
+  const m={Acquired:'acquired',Exclusivity:'exclusivity','Advanced Discussions':'advanced','Early Discussions':'early','On Hold':'hold','Potential Opportunities':'potential',Declined:'declined',Lost:'lost'};
+  return'pill-'+(m[s]||'hold');
+}
+function pillLbl(s){
+  const m={'Advanced Discussions':'Advanced','Early Discussions':'Early Stage','Potential Opportunities':'Potential'};
+  return m[s]||s;
+}
+function dotColor(s){
+  const m={Acquired:'#2d5a3d',Exclusivity:'#b8830a','Advanced Discussions':'#2a4a6b','Early Discussions':'#7a7460','On Hold':'#5a5650','Potential Opportunities':'#5a3d6b'};
+  return m[s]||'#aaa';
+}
+function cityMatch(d,f){
+  if(f==='London')return d.city&&d.city.toLowerCase().includes('london');
+  if(f==='Bristol')return d.city==='Bristol';
+  if(f==='Other')return d.city&&!d.city.toLowerCase().includes('london')&&d.city!=='Bristol';
+  return true;
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+function renderKPIs(){
+  const activeStatuses=['Acquired','Exclusivity','Advanced Discussions','Early Discussions'];
+  const active=liveDeals.filter(d=>activeStatuses.includes(d.status));
+  const beds=liveDeals.reduce((s,d)=>s+(d.beds||0),0);
+  const gdv=liveDeals.filter(d=>d.gdv).reduce((s,d)=>s+d.gdv,0);
+  const eq=active.filter(d=>d.equity).reduce((s,d)=>s+d.equity,0);
+  const decCount=declinedDeals.filter(d=>d.status==='Declined').length;
+  document.getElementById('headerDate').textContent=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('kpiGrid').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Pipeline Deals</div><div class="kpi-value gold">${liveDeals.length}</div><div class="kpi-sub">${active.length} active</div></div>
+    <div class="kpi"><div class="kpi-label">Total Beds</div><div class="kpi-value">${beds.toLocaleString()}</div><div class="kpi-sub">live pipeline</div></div>
+    <div class="kpi"><div class="kpi-label">Pipeline GDV</div><div class="kpi-value gold">${fmt(gdv)}</div><div class="kpi-sub">where known</div></div>
+    <div class="kpi"><div class="kpi-label">Equity Required</div><div class="kpi-value">£${(eq/1e6).toFixed(0)}M</div><div class="kpi-sub">active deals</div></div>
+    <div class="kpi"><div class="kpi-label">Declined</div><div class="kpi-value red-val">${decCount}</div><span class="kpi-link" onclick="switchTabByName('declined')">view all</span></div>`;
+}
+
+// ── CARDS ─────────────────────────────────────────────────────────────────────
+function renderCards(data){
+  const order=['Acquired','Exclusivity','Advanced Discussions','Early Discussions','Potential Opportunities','On Hold'];
+  const grouped={};order.forEach(s=>grouped[s]=[]);
+  data.forEach(d=>{if(grouped[d.status])grouped[d.status].push(d);});
+  let html='';
+  order.forEach(s=>{
+    const g=grouped[s];if(!g.length)return;
+    html+=`<div class="status-section"><div class="status-heading"><span class="status-dot" style="background:${dotColor(s)}"></span><span class="status-heading-text">${s}</span><span class="status-count">${g.length}</span></div><div class="cards-grid">`;
+    g.forEach((d,i)=>{
+      const idx=liveDeals.indexOf(d);
+      const st=d.studios!=null?`${d.studios}s / ${d.ensuite!=null?d.ensuite:'—'}e`:(d.ensuite!=null?`${d.ensuite}e`:'');
+      html+=`<div class="deal-card" onclick="openModal(${idx})">
+        <div class="deal-card-top"><div class="deal-address">${d.address||'—'}</div><span class="deal-status-pill ${pillCls(d.status)}">${pillLbl(d.status)}</span></div>
+        <div class="deal-location">${d.neighbourhood?d.neighbourhood+', ':''}<strong>${d.city.replace('London - ','')}</strong></div>
+        <div class="deal-metrics">
+          <div class="metric-box"><div class="metric-label">Beds</div><div class="metric-value">${d.beds||'—'}</div>${st?`<div class="metric-sub">${st}</div>`:''}</div>
+          <div class="metric-box"><div class="metric-label">Land Price</div><div class="metric-value">${d.landPrice?fmt(d.landPrice):'—'}</div>${d.totalCost?`<div class="metric-sub">Cost ${fmt(d.totalCost)}</div>`:''}</div>
+          <div class="metric-box"><div class="metric-label">Equity</div><div class="metric-value">${d.equity?fmt(d.equity):'—'}</div>${d.gdv?`<div class="metric-sub">GDV ${fmt(d.gdv)}</div>`:''}</div>
+        </div>
+        <div class="deal-tags">
+          ${d.marketing?`<span class="tag">${d.marketing}</span>`:''}
+          ${d.ptal?`<span class="tag gold-tag">${d.ptal}</span>`:''}
+          ${d.developer?`<span class="tag">${d.developer}</span>`:''}
+          ${d.intake?`<span class="deal-intake">AY ${d.intake}</span>`:''}
+        </div>
+        ${d.notes?`<div class="deal-notes">${d.notes}</div>`:''}
+        <div class="card-hint">Click for full details →</div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+  document.getElementById('cardsView').innerHTML=html||`<div style="text-align:center;padding:60px;color:var(--text-dim);border:1px dashed var(--cream-dark);background:white">No deals match the current filters</div>`;
+}
+
+// ── TABLE ─────────────────────────────────────────────────────────────────────
+function renderTable(data){
+  const order=['Acquired','Exclusivity','Advanced Discussions','Early Discussions','Potential Opportunities','On Hold'];
+  const sorted=[...data].sort((a,b)=>order.indexOf(a.status)-order.indexOf(b.status));
+  let html='',lastS=null;
+  sorted.forEach(d=>{
+    const idx=liveDeals.indexOf(d);
+    if(d.status!==lastS){html+=`<tr class="tbl-section"><td colspan="12">${d.status}</td></tr>`;lastS=d.status;}
+    html+=`<tr onclick="openModal(${idx})">
+      <td><span class="deal-status-pill ${pillCls(d.status)}" style="font-size:10px">${pillLbl(d.status)}</span></td>
+      <td style="font-weight:500">${d.address||'—'}</td>
+      <td class="muted">${d.neighbourhood?d.neighbourhood+', ':''} ${d.city}</td>
+      <td style="font-weight:600">${d.beds||'—'}</td>
+      <td class="right muted">${fmt(d.landPrice)}</td>
+      <td class="right muted">${fmt(d.totalCost)}</td>
+      <td class="right">${fmt(d.gdv)}</td>
+      <td class="right" style="font-weight:500">${fmt(d.equity)}</td>
+      <td class="right muted">${fmtYoc(d.yoc)}</td>
+      <td class="muted">${d.developer||'—'}</td>
+      <td class="muted">${d.intake||'—'}</td>
+      <td class="muted" style="font-size:11px">${d.planning||'—'}</td>
+    </tr>`;
+  });
+  document.getElementById('tableBody').innerHTML=html||'<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-dim)">No results</td></tr>';
+}
+
+// ── DECLINED ──────────────────────────────────────────────────────────────────
+function renderDeclined(data){
+  let html='';
+  data.forEach(d=>{
+    const pc=d.status==='Lost'?'pill-lost':'pill-declined';
+    html+=`<tr><td><span class="deal-status-pill ${pc}" style="font-size:10px">${d.status}</span></td>
+      <td style="font-weight:500">${d.address||'—'}</td><td class="muted">${d.city}</td>
+      <td class="muted">${d.area||'—'}</td><td>${d.beds||'—'}</td>
+      <td class="muted" style="font-size:12px">${d.type||'—'}</td>
+      <td class="muted" style="font-size:12px">${d.seller||'—'}</td>
+      <td class="right muted">${fmt(d.landPrice)}</td></tr>`;
+  });
+  document.getElementById('declinedBody').innerHTML=html||'<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-dim)">No results</td></tr>';
+}
+
+// ── NEXT ACTIONS ──────────────────────────────────────────────────────────────
+function renderActions(filter){
+  const data=filter==='all'?nextActions:nextActions.filter(a=>a.rag===filter);
+  const lbl={red:'Urgent',amber:'Needs Attention',green:'In Hand'};
+  let html='';
+  data.forEach(a=>{
+    const has=a.action&&a.action.trim();
+    html+=`<div class="action-card"><div class="action-stripe stripe-${a.rag}"></div><div class="action-body">
+      <div class="action-card-top">
+        <div><div class="action-addr">${a.address}</div><div class="action-city-txt">${a.city}</div></div>
+        <div class="action-rag-badge"><span class="rag-dot rag-${a.rag}"></span><span style="color:var(--text-dim)">${lbl[a.rag]}</span></div>
+      </div>
+      <div class="action-text-box ${has?'':'empty'}">${has?a.action:'Next action to be populated via shared tracker'}</div>
+      <div class="action-footer">
+        <span class="deal-status-pill ${pillCls(a.status)}" style="font-size:10px">${pillLbl(a.status)}</span>
+        <span class="action-beds-txt">${a.beds} beds</span>
+      </div>
+    </div></div>`;
+  });
+  document.getElementById('actionsCards').innerHTML=html||`<div class="empty-state"><p>No actions in this category</p></div>`;
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openModal(idx){
+  const d=liveDeals[idx];
+  document.getElementById('modalPill').innerHTML=`<span class="deal-status-pill ${pillCls(d.status)}">${pillLbl(d.status)}</span>`;
+  document.getElementById('modalAddress').textContent=d.address||'—';
+  document.getElementById('modalLocation').innerHTML=`${d.neighbourhood?d.neighbourhood+', ':''}${d.city}${d.ptal?' &nbsp;·&nbsp; '+d.ptal:''}`;
+
+  const bedsTotal=d.beds||0;
+  const studios=d.studios!=null?d.studios:'—';
+  const ensuite=d.ensuite!=null?d.ensuite:'—';
+  const other=(d.beds!=null&&d.studios!=null&&d.ensuite!=null)?(d.beds-d.studios-d.ensuite):'—';
+
+  function row(label,value){
+    const empty=value==null||value==='';
+    return`<div class="modal-detail-item"><div class="modal-detail-label">${label}</div><div class="modal-detail-value${empty?' empty':''}">${empty?'Not available':value}</div></div>`;
+  }
+
+  document.getElementById('modalBody').innerHTML=`
+    <!-- Financials -->
+    <div class="modal-section-title">Financials</div>
+    <div class="modal-fin-grid">
+      <div class="modal-fin-box"><div class="modal-fin-label">Land Price</div><div class="modal-fin-value">${fmt(d.landPrice)}</div><div class="modal-fin-sub">${fmtFull(d.landPrice)}</div></div>
+      <div class="modal-fin-box"><div class="modal-fin-label">Total Levered Cost</div><div class="modal-fin-value">${fmt(d.totalCost)}</div><div class="modal-fin-sub">${fmtFull(d.totalCost)}</div></div>
+      <div class="modal-fin-box"><div class="modal-fin-label">GDV</div><div class="modal-fin-value">${fmt(d.gdv)}</div><div class="modal-fin-sub">${fmtFull(d.gdv)}</div></div>
+      <div class="modal-fin-box"><div class="modal-fin-label">Equity Required</div><div class="modal-fin-value">${fmt(d.equity)}</div><div class="modal-fin-sub">YoC: ${fmtYoc(d.yoc)}</div></div>
+    </div>
+
+    <!-- Bed Split -->
+    <div class="modal-section-title">Bed Split</div>
+    <div class="modal-bed-split">
+      <div class="modal-bed-box"><div class="modal-bed-num">${bedsTotal||'—'}</div><div class="modal-bed-lbl">Total Beds</div></div>
+      <div class="modal-bed-box"><div class="modal-bed-num">${studios}</div><div class="modal-bed-lbl">Studios</div></div>
+      <div class="modal-bed-box"><div class="modal-bed-num">${ensuite}</div><div class="modal-bed-lbl">Ensuite</div></div>
+    </div>
+
+    <!-- Deal Details -->
+    <div class="modal-section-title">Deal Details</div>
+    <div class="modal-details-grid">
+      ${row('Full Address', d.address)}
+      ${row('Developer', d.developer)}
+      ${row('Seller / Vendor', d.seller)}
+      ${row('Marketing', d.marketing)}
+      ${row('Deal Type', d.type)}
+      ${row('Planning Status', d.planning)}
+      ${row('Intake Date (AY)', d.intake)}
+      ${row('Gateway 2', d.gateway)}
+      ${row('PTAL Rating', d.ptal)}
+      ${row('GIA (Sq. ft.)', d.gia ? d.gia.toLocaleString() : null)}
+    </div>
+
+    ${d.notes?`<div class="modal-section-title">Notes</div><div class="modal-notes">${d.notes}</div>`:''}
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeModal(e){if(e.target===document.getElementById('modalOverlay'))closeModalDirect();}
+function closeModalDirect(){
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModalDirect();});
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function getFiltered(){
+  const s=(document.getElementById('searchInput')?.value||'').toLowerCase();
+  return liveDeals.filter(d=>{
+    const statusOk=activeStatus==='All'||d.status===activeStatus;
+    const cityOk=activeCity==='All'||cityMatch(d,activeCity);
+    const searchOk=!s||[d.address,d.city,d.seller,d.neighbourhood,d.developer].join(' ').toLowerCase().includes(s);
+    return statusOk&&cityOk&&searchOk;
+  });
+}
+function applyFilters(){const d=getFiltered();renderCards(d);renderTable(d);}
+function setStatus(s,btn){activeStatus=s;document.querySelectorAll('#statusPills .pill-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyFilters();}
+function setCity(c,btn){
+  activeCity=activeCity===c?'All':c;
+  document.querySelectorAll('#cityPills .pill-btn').forEach(b=>b.classList.remove('city-active'));
+  if(activeCity!=='All')btn.classList.add('city-active');
+  applyFilters();
+}
+function applyDeclinedFilters(){
+  const s=(document.getElementById('decSearch')?.value||'').toLowerCase();
+  renderDeclined(declinedDeals.filter(d=>(decActiveCity==='All'||d.city===decActiveCity)&&(!s||[d.address,d.city,d.area,d.seller].join(' ').toLowerCase().includes(s))));
+}
+function setDecCity(c,btn){decActiveCity=c;document.querySelectorAll('#decCityPills .pill-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyDeclinedFilters();}
+function filterActions(f,btn){document.querySelectorAll('.rag-pill-btn').forEach(b=>b.className='rag-pill-btn');btn.classList.add('rag-active-'+f);renderActions(f);}
+function setView(v){
+  currentView=v;
+  document.getElementById('cardsView').style.display=v==='cards'?'block':'none';
+  document.getElementById('tableView').style.display=v==='table'?'block':'none';
+  document.getElementById('cardsBtn').classList.toggle('active',v==='cards');
+  document.getElementById('tableBtn').classList.toggle('active',v==='table');
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+  document.getElementById('mainFilters').style.display=name==='pipeline'?'flex':'none';
+  document.getElementById('decFilters').style.display=name==='declined'?'flex':'none';
+}
+function switchTabByName(name){const btns=document.querySelectorAll('.tab-btn');['pipeline','declined','actions'].forEach((n,i)=>{if(n===name)switchTab(n,btns[i]);});}
+function checkPw(){
+  if(document.getElementById('pwInput').value==='PBSA2026'){
+    document.getElementById('gate').style.display='none';
+  }else{
+    document.getElementById('pwError').style.display='block';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').focus();
+  }
+}
+renderKPIs();applyFilters();renderDeclined(declinedDeals);renderActions('all');
+</script>
+</body>
+</html>
