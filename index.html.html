@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PBSA Platform · Pipeline Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --olive:#2c2b1e;--cream:#f0ece0;--cream-mid:#e8e3d4;--cream-dark:#d8d2c0;--parchment:#f5f2ea;
+  --gold:#c8a96e;--gold-light:#dfc08a;
+  --text-dark:#1e1d14;--text-mid:#4a4637;--text-muted:#7a7460;--text-dim:#a09880;
+  --red:#c0392b;--red-bg:rgba(192,57,43,0.1);
+  --green:#2d5a3d;--green-bg:rgba(45,90,61,0.12);
+  --amber:#b8830a;--amber-bg:rgba(184,131,10,0.1);
+  --blue:#2a4a6b;--blue-bg:rgba(42,74,107,0.1);
+  --grey:#5a5650;--grey-bg:rgba(90,86,80,0.1);
+  --purple:#5a3d6b;--purple-bg:rgba(90,61,107,0.1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--parchment);color:var(--text-dark);min-height:100vh;}
+#gate{position:fixed;inset:0;background:var(--olive);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:32px;}
+.gate-logo{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--cream);letter-spacing:0.05em;}
+.gate-logo em{color:var(--gold);font-style:italic;}
+.gate-box{display:flex;flex-direction:column;align-items:center;gap:12px;width:300px;}
+.gate-label{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-dim);}
+.gate-input{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(200,169,110,0.3);color:var(--cream);padding:12px 16px;font-family:'DM Mono',monospace;font-size:14px;letter-spacing:0.1em;outline:none;text-align:center;transition:border-color 0.2s;}
+.gate-input:focus{border-color:var(--gold);}
+.gate-input::placeholder{color:rgba(200,169,110,0.3);}
+.gate-btn{width:100%;background:var(--gold);border:none;color:var(--olive);padding:12px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;transition:background 0.2s;}
+.gate-btn:hover{background:var(--gold-light);}
+.gate-error{font-size:11px;color:#e07070;letter-spacing:0.05em;display:none;}
+.header{background:var(--olive);padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200;}
+.header-logo{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--cream);}
+.header-logo em{color:var(--gold);font-style:italic;}
+.header-right{display:flex;align-items:center;gap:28px;}
+.header-meta{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(200,185,155,0.5);}
+.header-date{font-size:11px;color:rgba(200,185,155,0.7);}
+.add-btn{background:var(--gold);border:none;color:var(--olive);padding:8px 18px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;}
+.add-btn:hover{background:var(--gold-light);}
+.hero{background:var(--olive);padding:40px 40px 48px;display:flex;align-items:flex-end;justify-content:space-between;gap:40px;}
+.hero-left h1{font-family:'Cormorant Garamond',serif;font-size:56px;font-weight:300;color:var(--cream);line-height:1;}
+.hero-left h1 em{color:var(--gold);font-style:italic;}
+.hero-left .sub{font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(200,185,155,0.5);margin-top:14px;}
+.kpi-grid{display:flex;border:1px solid rgba(200,169,110,0.2);}
+.kpi{padding:18px 28px;border-right:1px solid rgba(200,169,110,0.15);min-width:130px;text-align:center;}
+.kpi:last-child{border-right:none;}
+.kpi-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(200,185,155,0.45);margin-bottom:10px;}
+.kpi-value{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:400;color:var(--cream);line-height:1;}
+.kpi-value.gold{color:var(--gold);}
+.kpi-value.red-val{color:#e08070;}
+.kpi-sub{font-size:10px;color:rgba(200,185,155,0.35);margin-top:5px;}
+.kpi-link{font-size:10px;color:var(--gold);text-decoration:underline;cursor:pointer;margin-top:4px;display:block;}
+.kpi-legend{background:rgba(20,19,12,0.95);padding:9px 40px;display:flex;align-items:center;flex-wrap:wrap;gap:0;}
+.kpi-legend-item{font-size:10px;color:rgba(200,185,155,0.5);}
+.kpi-legend-item strong{color:rgba(200,185,155,0.78);font-weight:500;}
+.kpi-legend-sep{color:rgba(200,169,110,0.3);margin:0 14px;}
+.live-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:rgba(74,222,128,0.8);letter-spacing:0.08em;text-transform:uppercase;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#4ade80;animation:livepulse 2s infinite;}
+@keyframes livepulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.tabs-bar{background:var(--olive);border-top:1px solid rgba(200,169,110,0.15);padding:0 40px;display:flex;}
+.tab-btn{padding:16px 4px;margin-right:32px;font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(200,185,155,0.45);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all 0.2s;}
+.tab-btn:hover{color:var(--cream);}
+.tab-btn.active{color:var(--cream);border-bottom-color:var(--gold);font-weight:500;}
+.filters-bar{background:var(--cream-mid);border-bottom:1px solid var(--cream-dark);padding:14px 40px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.filter-sep{width:1px;height:20px;background:var(--cream-dark);margin:0 6px;}
+.filter-label-sm{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);margin-right:2px;}
+.filter-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.pill-btn{padding:5px 14px;border-radius:999px;border:1px solid var(--cream-dark);background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-muted);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.pill-btn:hover{border-color:var(--text-mid);color:var(--text-dark);}
+.pill-btn.active{background:var(--olive);border-color:var(--olive);color:var(--cream);}
+.pill-btn.city-active{background:var(--text-dark);border-color:var(--text-dark);color:var(--cream);}
+.search-input{padding:5px 14px;border:1px solid var(--cream-dark);background:var(--parchment);font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-dark);outline:none;width:220px;transition:border-color 0.2s;}
+.search-input:focus{border-color:var(--gold);}
+.search-input::placeholder{color:var(--text-dim);}
+.view-toggle{margin-left:auto;display:flex;border:1px solid var(--cream-dark);overflow:hidden;}
+.view-btn{padding:5px 16px;background:none;border:none;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
+.view-btn.active{background:var(--olive);color:var(--cream);}
+.view-btn:first-child{border-right:1px solid var(--cream-dark);}
+.main{padding:32px 40px 60px;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.status-section{margin-bottom:36px;}
+.status-heading{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--cream-dark);}
+.status-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.status-heading-text{font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:500;color:var(--text-mid);}
+.status-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);background:var(--cream-mid);border:1px solid var(--cream-dark);padding:1px 8px;border-radius:999px;}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+.deal-card{background:white;border:1px solid var(--cream-dark);padding:22px 22px 18px;transition:box-shadow 0.2s,transform 0.15s;cursor:pointer;}
+.deal-card:hover{box-shadow:0 4px 24px rgba(44,43,30,0.12);transform:translateY(-1px);}
+.deal-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;}
+.deal-address{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:var(--text-dark);line-height:1.2;padding-right:8px;}
+.deal-status-pill{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:3px 10px;border-radius:999px;font-weight:500;white-space:nowrap;flex-shrink:0;}
+.pill-acquired{background:var(--green-bg);color:var(--green);border:1px solid rgba(45,90,61,0.2);}
+.pill-exclusivity{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(184,131,10,0.2);}
+.pill-advanced{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(42,74,107,0.2);}
+.pill-early{background:rgba(160,152,128,0.12);color:var(--text-mid);border:1px solid rgba(160,152,128,0.25);}
+.pill-hold{background:var(--grey-bg);color:var(--grey);border:1px solid rgba(90,86,80,0.2);}
+.pill-lost{background:var(--red-bg);color:var(--red);border:1px solid rgba(192,57,43,0.2);}
+.pill-potential{background:var(--purple-bg);color:var(--purple);border:1px solid rgba(90,61,107,0.2);}
+.pill-declined{background:var(--grey-bg);color:var(--grey);border:1px solid rgba(90,86,80,0.2);}
+.deal-location{font-size:12px;color:var(--text-muted);margin-bottom:16px;display:flex;align-items:center;gap:5px;}
+.deal-location::before{content:'◆';font-size:7px;color:var(--gold);}
+.deal-location strong{color:var(--text-mid);font-weight:500;}
+.deal-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+.metric-box{background:var(--parchment);border:1px solid var(--cream-dark);padding:10px 10px 8px;}
+.metric-label{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:5px;}
+.metric-value{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--text-dark);line-height:1;}
+.metric-sub{font-size:10px;color:var(--text-dim);margin-top:3px;}
+.deal-tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.tag{font-size:10px;padding:2px 9px;border-radius:999px;border:1px solid var(--cream-dark);color:var(--text-muted);background:var(--parchment);}
+.tag.gold-tag{border-color:rgba(200,169,110,0.35);color:var(--gold);background:rgba(200,169,110,0.07);}
+.deal-intake{margin-left:auto;font-size:11px;color:var(--text-dim);}
+.deal-notes{margin-top:12px;padding:8px 10px;background:rgba(200,169,110,0.06);border-left:2px solid var(--gold);font-size:11px;color:var(--text-muted);line-height:1.5;font-style:italic;}
+.card-hint{margin-top:12px;font-size:10px;color:var(--text-dim);letter-spacing:0.05em;text-align:right;opacity:0;transition:opacity 0.2s;}
+.deal-card:hover .card-hint{opacity:1;}
+.table-wrap{overflow-x:auto;border:1px solid var(--cream-dark);background:white;}
+table{width:100%;border-collapse:collapse;min-width:900px;}
+thead tr{background:var(--cream-mid);border-bottom:1px solid var(--cream-dark);}
+th{padding:10px 14px;text-align:left;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);font-weight:500;white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--cream-mid);transition:background 0.12s;cursor:pointer;}
+tbody tr:hover{background:var(--parchment);}
+tbody tr:last-child{border-bottom:none;}
+td{padding:11px 14px;font-size:13px;color:var(--text-dark);vertical-align:middle;}
+td.muted{color:var(--text-muted);font-size:12px;}
+td.right{text-align:right;font-variant-numeric:tabular-nums;}
+.tbl-section td{background:var(--cream-mid);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);padding:6px 14px;border-top:1px solid var(--cream-dark);cursor:default;}
+.modal-overlay{position:fixed;inset:0;background:rgba(20,19,12,0.65);z-index:1000;display:none;align-items:center;justify-content:center;padding:24px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--parchment);width:100%;max-width:680px;max-height:90vh;overflow-y:auto;position:relative;animation:modalIn 0.22s ease;}
+@keyframes modalIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.modal-header{background:var(--olive);padding:28px 32px 24px;position:relative;}
+.modal-close{position:absolute;top:20px;right:24px;background:none;border:none;color:rgba(200,185,155,0.5);font-size:20px;cursor:pointer;padding:4px 8px;transition:color 0.2s;}
+.modal-close:hover{color:var(--cream);}
+.modal-status-pill{display:inline-block;margin-bottom:10px;}
+.modal-address{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--cream);line-height:1.15;}
+.modal-location{font-size:12px;color:rgba(200,185,155,0.55);margin-top:6px;display:flex;align-items:center;gap:6px;}
+.modal-location::before{content:'◆';font-size:7px;color:var(--gold);}
+.modal-body{padding:28px 32px;}
+.modal-fin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
+.modal-fin-box{background:white;border:1px solid var(--cream-dark);padding:14px 14px 12px;}
+.modal-fin-label{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;}
+.modal-fin-value{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--text-dark);line-height:1;}
+.modal-fin-sub{font-size:10px;color:var(--text-dim);margin-top:3px;}
+.modal-section-title{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--cream-dark);}
+.modal-details-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:24px;border:1px solid var(--cream-dark);background:white;}
+.modal-detail-item{padding:10px 16px;border-bottom:1px solid var(--cream-mid);border-right:1px solid var(--cream-mid);}
+.modal-detail-item:nth-child(even){border-right:none;}
+.modal-detail-label{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px;}
+.modal-detail-value{font-size:13px;color:var(--text-dark);}
+.modal-detail-value.empty{color:var(--text-dim);font-style:italic;font-size:12px;}
+.modal-bed-split{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;}
+.modal-bed-box{background:white;border:1px solid var(--cream-dark);padding:12px 14px;text-align:center;}
+.modal-bed-num{font-family:'Cormorant Garamond',serif;font-size:26px;color:var(--text-dark);line-height:1;}
+.modal-bed-lbl{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin-top:4px;}
+.modal-notes{background:rgba(200,169,110,0.07);border-left:3px solid var(--gold);padding:12px 16px;font-size:12px;color:var(--text-mid);line-height:1.6;font-style:italic;}
+.actions-intro{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:20px;}
+.actions-intro-text h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--text-dark);}
+.actions-intro-text p{font-size:12px;color:var(--text-muted);margin-top:4px;line-height:1.6;}
+.rag-legend-row{display:flex;gap:16px;flex-shrink:0;align-items:center;}
+.rag-leg-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text-muted);}
+.rag-filter-strip{display:flex;gap:8px;margin-bottom:20px;}
+.rag-pill-btn{display:flex;align-items:center;gap:7px;padding:6px 16px;border:1px solid var(--cream-dark);background:white;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-muted);cursor:pointer;transition:all 0.15s;border-radius:999px;}
+.rag-pill-btn:hover{border-color:var(--text-mid);color:var(--text-dark);}
+.rag-pill-btn.rag-active-all{background:var(--olive);border-color:var(--olive);color:var(--cream);}
+.rag-pill-btn.rag-active-red{background:var(--red-bg);border-color:var(--red);color:var(--red);}
+.rag-pill-btn.rag-active-amber{background:var(--amber-bg);border-color:var(--amber);color:var(--amber);}
+.rag-pill-btn.rag-active-green{background:var(--green-bg);border-color:#4a9e6b;color:#2d5a3d;}
+.rag-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.rag-green{background:#4a9e6b;box-shadow:0 0 4px rgba(74,158,107,0.5);}
+.rag-amber{background:var(--amber);box-shadow:0 0 4px rgba(184,131,10,0.5);}
+.rag-red{background:var(--red);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 4px rgba(192,57,43,0.4);}50%{box-shadow:0 0 10px rgba(192,57,43,0.7);}}
+.actions-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+.action-card{background:white;border:1px solid var(--cream-dark);padding:20px;position:relative;transition:box-shadow 0.2s;}
+.action-card:hover{box-shadow:0 2px 16px rgba(44,43,30,0.08);}
+.action-stripe{position:absolute;left:0;top:0;bottom:0;width:4px;}
+.stripe-red{background:var(--red);}
+.stripe-amber{background:var(--amber);}
+.stripe-green{background:#4a9e6b;}
+.action-body{padding-left:12px;}
+.action-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;}
+.action-addr{font-family:'Cormorant Garamond',serif;font-size:17px;color:var(--text-dark);line-height:1.2;}
+.action-city-txt{font-size:11px;color:var(--text-muted);margin-bottom:12px;}
+.action-rag-badge{display:flex;align-items:center;gap:5px;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;flex-shrink:0;}
+.action-text-box{background:var(--parchment);border:1px solid var(--cream-dark);padding:10px 12px;font-size:12px;color:var(--text-mid);line-height:1.6;margin-bottom:12px;min-height:50px;font-style:italic;}
+.action-text-box.empty{color:var(--text-dim);font-style:normal;font-size:11px;}
+.action-footer{display:flex;align-items:center;gap:8px;}
+.action-beds-txt{font-size:11px;color:var(--text-dim);}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--cream-mid);}
+::-webkit-scrollbar-thumb{background:var(--cream-dark);}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-logo">PBSA <em>Platform</em></div>
+  <div class="gate-box">
+    <div class="gate-label">Enter Access Password</div>
+    <input class="gate-input" id="pwInput" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="gate-btn" onclick="checkPw()">Access Tracker</button>
+    <div class="gate-error" id="pwError">Incorrect password. Please try again.</div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-logo">PBSA <em>Platform</em></div>
+  <div class="header-right">
+    <span class="header-meta">Pipeline Tracker</span>
+    <span class="live-badge"><span class="live-dot"></span>Live</span>
+    <span class="header-date" id="headerDate"></span>
+    <button class="add-btn">+ Add Deal</button>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-left">
+    <h1>PBSA <em>Pipeline</em></h1>
+    <div class="sub">KATCH · VALPRE CAPITAL · CKC PROPERTIES</div>
+  </div>
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi"><div class="kpi-label">Loading</div><div class="kpi-value gold">—</div></div>
+  </div>
+</div>
+
+<div class="kpi-legend">
+  <span class="kpi-legend-item">⬡ <strong>Total Beds</strong> — all live pipeline deals, excl. lost &amp; declined</span>
+  <span class="kpi-legend-sep">·</span>
+  <span class="kpi-legend-item">⬡ <strong>Equity Required</strong> — active deals only (Acquired, Exclusivity, Advanced, Early Stage); On Hold excluded</span>
+  <span class="kpi-legend-sep">·</span>
+  <span class="kpi-legend-item">⬡ <strong>Declined</strong> — Declined Opportunities only; Lost shown separately in Declined &amp; Lost tab</span>
+  <span class="kpi-legend-sep">·</span>
+  <span class="kpi-legend-item">⬡ Data updates live from Google Sheets on each page load</span>
+</div>
+
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="switchTab('pipeline',this)">Pipeline</button>
+  <button class="tab-btn" onclick="switchTab('declined',this)">Declined &amp; Lost</button>
+  <button class="tab-btn" onclick="switchTab('actions',this)">Next Actions</button>
+</div>
+
+<div class="filters-bar" id="mainFilters">
+  <span class="filter-label-sm">Status</span>
+  <div class="filter-group" id="statusPills">
+    <button class="pill-btn active" onclick="setStatus('All',this)">All</button>
+    <button class="pill-btn" onclick="setStatus('Acquired',this)">Acquired</button>
+    <button class="pill-btn" onclick="setStatus('Exclusivity',this)">Exclusivity</button>
+    <button class="pill-btn" onclick="setStatus('Advanced Discussions',this)">Advanced</button>
+    <button class="pill-btn" onclick="setStatus('Early Discussions',this)">Early Stage</button>
+    <button class="pill-btn" onclick="setStatus('Potential Opportunities',this)">Potential</button>
+    <button class="pill-btn" onclick="setStatus('On Hold',this)">On Hold</button>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group" id="cityPills">
+    <button class="pill-btn" onclick="setCity('London',this)">London</button>
+    <button class="pill-btn" onclick="setCity('Bristol',this)">Bristol</button>
+    <button class="pill-btn" onclick="setCity('Other',this)">Other</button>
+  </div>
+  <div class="filter-sep"></div>
+  <input class="search-input" id="searchInput" type="text" placeholder="Search by address, area…" oninput="applyFilters()">
+  <div class="view-toggle">
+    <button class="view-btn active" id="cardsBtn" onclick="setView('cards')">Cards</button>
+    <button class="view-btn" id="tableBtn" onclick="setView('table')">Table</button>
+  </div>
+</div>
+
+<div class="filters-bar" id="decFilters" style="display:none">
+  <span class="filter-label-sm">City</span>
+  <div class="filter-group" id="decCityPills">
+    <button class="pill-btn active" onclick="setDecCity('All',this)">All</button>
+    <button class="pill-btn" onclick="setDecCity('London',this)">London</button>
+    <button class="pill-btn" onclick="setDecCity('Bristol',this)">Bristol</button>
+    <button class="pill-btn" onclick="setDecCity('Edinburgh',this)">Edinburgh</button>
+    <button class="pill-btn" onclick="setDecCity('Glasgow',this)">Glasgow</button>
+    <button class="pill-btn" onclick="setDecCity('Leeds',this)">Leeds</button>
+    <button class="pill-btn" onclick="setDecCity('Newcastle',this)">Newcastle</button>
+  </div>
+  <input class="search-input" id="decSearch" type="text" placeholder="Search…" oninput="applyDeclinedFilters()" style="margin-left:auto">
+</div>
+
+<div class="main">
+  <div class="tab-panel active" id="tab-pipeline">
+    <div id="cardsView"></div>
+    <div id="tableView" style="display:none">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Status</th><th>Address</th><th>City / Area</th><th>Beds</th>
+            <th>Land Price</th><th>Total Cost</th><th>GDV</th><th>Equity</th>
+            <th>YoC</th><th>Developer</th><th>Intake</th><th>Planning</th>
+          </tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="tab-panel" id="tab-declined">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Status</th><th>Address</th><th>City</th><th>Area</th><th>Beds</th>
+          <th>Deal Type</th><th>Seller / Partner</th><th>Land Price</th>
+        </tr></thead>
+        <tbody id="declinedBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="tab-panel" id="tab-actions">
+    <div class="actions-intro">
+      <div class="actions-intro-text">
+        <h2>Next Actions</h2>
+        <p>Track what needs to happen on each active deal.<br>RAG status and next action populated via the shared Google Sheet.</p>
+      </div>
+      <div class="rag-legend-row">
+        <div class="rag-leg-item"><span class="rag-dot rag-red"></span>Urgent</div>
+        <div class="rag-leg-item"><span class="rag-dot rag-amber"></span>Needs Attention</div>
+        <div class="rag-leg-item"><span class="rag-dot rag-green"></span>In Hand</div>
+      </div>
+    </div>
+    <div class="rag-filter-strip">
+      <button class="rag-pill-btn rag-active-all" id="ragAll" onclick="filterActions('all',this)">All Deals</button>
+      <button class="rag-pill-btn" id="ragRed" onclick="filterActions('red',this)"><span class="rag-dot rag-red"></span>Urgent</button>
+      <button class="rag-pill-btn" id="ragAmber" onclick="filterActions('amber',this)"><span class="rag-dot rag-amber"></span>Needs Attention</button>
+      <button class="rag-pill-btn" id="ragGreen" onclick="filterActions('green',this)"><span class="rag-dot rag-green"></span>In Hand</button>
+    </div>
+    <div class="actions-cards" id="actionsCards"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modalBox">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+      <div class="modal-status-pill" id="modalPill"></div>
+      <div class="modal-address" id="modalAddress"></div>
+      <div class="modal-location" id="modalLocation"></div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3CX5siGS4TWXDc7bMusskIFSrFMGgUlPSSt4dHJj1dWFMEdxx-oExbMB1rFQzQts/exec';
+
+let liveDeals = [];
+
+// Declined & Lost — hardcoded (not in the live sheet)
+const declinedDeals = [
+  {status:"Declined",city:"Bristol",area:"Temple Meads",address:"",beds:350,type:"PBSA development",seller:"CKC / Smart Urban Living Bristol (One) Ltd",landPrice:null},
+  {status:"Declined",city:"Bristol",area:"Temple Meads",address:"Albert Road",beds:530,type:"Planning / PBSA development",seller:"Cubex Land + Alara Investments",landPrice:null},
+  {status:"Declined",city:"Edinburgh",area:"",address:"23 Yeaman Place",beds:148,type:"Planning / PBSA development",seller:"CA Student Living",landPrice:null},
+  {status:"Declined",city:"Glasgow",area:"",address:"",beds:509,type:"Forward funding / PBSA development",seller:"Galliard Homes + Apsley House Capital",landPrice:null},
+  {status:"Declined",city:"Leeds",area:"",address:"",beds:287,type:"Office-to-PBSA conversion",seller:"Global Mutual + Patron Capital",landPrice:null},
+  {status:"Declined",city:"London",area:"Westminster",address:"",beds:151,type:"",seller:"",landPrice:null},
+  {status:"Declined",city:"London",area:"St Johns Wood / Swiss Cottage",address:"",beds:"600-700",type:"",seller:"",landPrice:null},
+  {status:"Declined",city:"London",area:"Hackney Wick",address:"Berkshire Road",beds:null,type:"",seller:"",landPrice:null},
+  {status:"Declined",city:"London",area:"Lewisham",address:"5-9 Creekside",beds:231,type:"Planning / PBSA development",seller:"Fifth State + CA Ventures",landPrice:null},
+  {status:"Declined",city:"London",area:"Woolwich",address:"",beds:null,type:"Conversion / mixed-use redevelopment",seller:"CityInc",landPrice:null},
+  {status:"Declined",city:"London",area:"Kentish Town",address:"",beds:null,type:"",seller:"",landPrice:null},
+  {status:"Declined",city:"London",area:"Kensal",address:"Kensal Road",beds:220,type:"PBSA development",seller:"Thorstone Land & Property Ltd",landPrice:null},
+  {status:"Declined",city:"Newcastle",area:"",address:"",beds:null,type:"",seller:"",landPrice:null},
+  {status:"Lost",city:"London",area:"Euston",address:"William Road",beds:206,type:"",seller:"",landPrice:30000000},
+  {status:"Lost",city:"London - Zone 1",area:"Southwark",address:"200 Union Street",beds:200,type:"",seller:"CKC Properties",landPrice:22500000},
+];
+
+// Next Actions — will be driven by liveDeals once loaded, RAG defaults by stage
+const RAG_DEFAULTS = {
+  'Acquired':'green','Exclusivity':'red','Advanced Discussions':'amber',
+  'Early Discussions':'green','On Hold':'amber','Potential Opportunities':'green'
+};
+
+// ── CSV PARSER ────────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.replace(/\r/g,'').trim().split('\n');
+  const headers = splitCSVLine(lines[0]);
+
+  return lines.slice(1).map(line => {
+    if (!line.trim()) return null;
+    const cols = splitCSVLine(line);
+    const row = {};
+    headers.forEach((h,i) => { row[h] = (cols[i]||'').trim(); });
+
+    function n(v) {
+      if (!v || v==='' || v==='N/A') return null;
+      const x = parseFloat(v.replace(/[£,\s%]/g,''));
+      return isNaN(x) ? null : x;
+    }
+    function s(v) { return (v && v.trim() && v.trim()!=='N/A') ? v.trim() : ''; }
+
+    // Parse yield on cost — could be e.g. "6.50%" or "0.065"
+    let yoc = null;
+    const yocRaw = row['Yield on Cost'] || '';
+    if (yocRaw.includes('%')) {
+      yoc = parseFloat(yocRaw.replace('%','').trim()) / 100;
+    } else {
+      yoc = n(yocRaw);
+    }
+
+    const status = s(row['Status']);
+    const address = s(row['Address']);
+    if (!status && !address) return null;
+
+    return {
+      status:        status,
+      marketing:     s(row['Marketing']),
+      city:          s(row['City']),
+      neighbourhood: s(row['Neighbourhood']),
+      address:       address,
+      ptal:          s(row['PTAL (Public Transport Accessibility Level)']),
+      beds:          n(row['No. of Beds']),
+      studios:       n(row['Studios']),
+      ensuite:       n(row['Ensuite']),
+      developer:     s(row['Developer']),
+      intake:        n(row['Intake Date (September)']),
+      landPrice:     n(row['Land Price']),
+      totalCost:     n(row['Total Levered Project Cost']),
+      gdv:           n(row['Total GDV']),
+      equity:        n(row['Equity Required']),
+      yoc:           yoc,
+      planning:      s(row['Planning Status']),
+      type:          s(row['Type of Deal']),
+      gateway:       s(row['Gateway 2']),
+      gia:           n(row['GIA (Sq. ft.)']),
+      seller:        s(row['Seller']),
+      notes:         s(row['Notes']),
+      vcName:        s(row['VC Database Scheme Name']),
+    };
+  }).filter(r => r && (r.status || r.address));
+}
+
+function splitCSVLine(line) {
+  const cols = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  cols.push(cur);
+  return cols.map(c => c.replace(/^"|"$/g,'').trim());
+}
+
+// ── LOAD ──────────────────────────────────────────────────────────────────────
+function showLoading() {
+  document.getElementById('cardsView').innerHTML = `
+    <div style="text-align:center;padding:80px 40px;color:var(--text-dim)">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--text-muted);margin-bottom:10px">Loading pipeline data…</div>
+      <div style="font-size:12px">Fetching live from Google Sheets</div>
+    </div>`;
+}
+
+function showError(msg) {
+  document.getElementById('cardsView').innerHTML = `
+    <div style="text-align:center;padding:80px 40px;border:1px dashed var(--cream-dark);background:white">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--red);margin-bottom:10px">Could not load data</div>
+      <div style="font-size:12px;color:var(--text-muted)">${msg}</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:8px">Check the Google Sheet is published and try refreshing.</div>
+    </div>`;
+}
+
+async function loadSheetData() {
+  showLoading();
+  try {
+    const res = await fetch(APPS_SCRIPT_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.length === 0) throw new Error('No rows found');
+
+    function n(v) {
+      if (v === '' || v === null || v === undefined) return null;
+      const x = parseFloat(String(v).replace(/[£,\s]/g,''));
+      return isNaN(x) ? null : x;
+    }
+    function s(v) { return (v !== null && v !== undefined && String(v).trim() !== '' && String(v).trim() !== 'N/A') ? String(v).trim() : ''; }
+
+    liveDeals = rows.map(row => {
+      const status = s(row['Status']);
+      const address = s(row['Address']);
+      if (!status && !address) return null;
+
+      let yoc = null;
+      const yocRaw = String(row['Yield on Cost'] || '');
+      if (yocRaw.includes('%')) {
+        yoc = parseFloat(yocRaw.replace('%','').trim()) / 100;
+      } else {
+        yoc = n(row['Yield on Cost']);
+        // If stored as decimal e.g. 0.065 keep as is, if >1 divide by 100
+        if (yoc !== null && yoc > 1) yoc = yoc / 100;
+      }
+
+      return {
+        status:        status,
+        marketing:     s(row['Marketing']),
+        city:          s(row['City']),
+        neighbourhood: s(row['Neighbourhood']),
+        address:       address,
+        ptal:          s(row['PTAL (Public Transport Accessibility Level)']),
+        beds:          n(row['No. of Beds']),
+        studios:       n(row['Studios']),
+        ensuite:       n(row['Ensuite']),
+        developer:     s(row['Developer']),
+        intake:        n(row['Intake Date (September)']),
+        landPrice:     n(row['Land Price']),
+        totalCost:     n(row['Total Levered Project Cost']),
+        gdv:           n(row['Total GDV']),
+        equity:        n(row['Equity Required']),
+        yoc:           yoc,
+        planning:      s(row['Planning Status']),
+        type:          s(row['Type of Deal']),
+        gateway:       s(row['Gateway 2']),
+        gia:           n(row['GIA (Sq. ft.)']),
+        seller:        s(row['Seller']),
+        notes:         s(row['Notes']),
+        vcName:        s(row['VC Database Scheme Name']),
+      };
+    }).filter(r => r && (r.status || r.address));
+
+    if (liveDeals.length === 0) throw new Error('No valid rows parsed');
+    renderKPIs();
+    applyFilters();
+    renderActions('all');
+  } catch(err) {
+    console.error(err);
+    showError('Unable to reach data source. ' + err.message);
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function fmt(n){if(n==null)return'—';if(n>=1e9)return'£'+(n/1e9).toFixed(1)+'bn';if(n>=1e6)return'£'+(n/1e6).toFixed(0)+'M';if(n>=1e3)return'£'+(n/1e3).toFixed(0)+'k';return'£'+n;}
+function fmtFull(n){if(n==null)return'—';return'£'+n.toLocaleString();}
+function fmtYoc(v){return v?(v*100).toFixed(2)+'%':'—';}
+function pillCls(s){const m={Acquired:'acquired',Exclusivity:'exclusivity','Advanced Discussions':'advanced','Early Discussions':'early','On Hold':'hold','Potential Opportunities':'potential',Declined:'declined',Lost:'lost'};return'pill-'+(m[s]||'hold');}
+function pillLbl(s){const m={'Advanced Discussions':'Advanced','Early Discussions':'Early Stage','Potential Opportunities':'Potential'};return m[s]||s;}
+function dotColor(s){const m={Acquired:'#2d5a3d',Exclusivity:'#b8830a','Advanced Discussions':'#2a4a6b','Early Discussions':'#7a7460','On Hold':'#5a5650','Potential Opportunities':'#5a3d6b'};return m[s]||'#aaa';}
+function cityMatch(d,f){if(f==='London')return d.city&&d.city.toLowerCase().includes('london');if(f==='Bristol')return d.city==='Bristol';if(f==='Other')return d.city&&!d.city.toLowerCase().includes('london')&&d.city!=='Bristol';return true;}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+function renderKPIs() {
+  const activeStatuses=['Acquired','Exclusivity','Advanced Discussions','Early Discussions'];
+  const active=liveDeals.filter(d=>activeStatuses.includes(d.status));
+  const beds=liveDeals.reduce((s,d)=>s+(typeof d.beds==='number'?d.beds:0),0);
+  const gdv=liveDeals.filter(d=>d.gdv).reduce((s,d)=>s+d.gdv,0);
+  const eq=active.filter(d=>d.equity).reduce((s,d)=>s+d.equity,0);
+  const decCount=declinedDeals.filter(d=>d.status==='Declined').length;
+  document.getElementById('headerDate').textContent=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('kpiGrid').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Pipeline Deals</div><div class="kpi-value gold">${liveDeals.length}</div><div class="kpi-sub">${active.length} active</div></div>
+    <div class="kpi"><div class="kpi-label">Total Beds</div><div class="kpi-value">${beds.toLocaleString()}</div><div class="kpi-sub">live pipeline</div></div>
+    <div class="kpi"><div class="kpi-label">Pipeline GDV</div><div class="kpi-value gold">${fmt(gdv)}</div><div class="kpi-sub">where known</div></div>
+    <div class="kpi"><div class="kpi-label">Equity Required</div><div class="kpi-value">£${(eq/1e6).toFixed(0)}M</div><div class="kpi-sub">active deals</div></div>
+    <div class="kpi"><div class="kpi-label">Declined</div><div class="kpi-value red-val">${decCount}</div><span class="kpi-link" onclick="switchTabByName('declined')">view all</span></div>`;
+}
+
+// ── CARDS ─────────────────────────────────────────────────────────────────────
+function renderCards(data) {
+  const order=['Acquired','Exclusivity','Advanced Discussions','Early Discussions','Potential Opportunities','On Hold'];
+  const grouped={};order.forEach(s=>grouped[s]=[]);
+  data.forEach(d=>{if(grouped[d.status])grouped[d.status].push(d);});
+  let html='';
+  order.forEach(s=>{
+    const g=grouped[s];if(!g.length)return;
+    html+=`<div class="status-section"><div class="status-heading"><span class="status-dot" style="background:${dotColor(s)}"></span><span class="status-heading-text">${s}</span><span class="status-count">${g.length}</span></div><div class="cards-grid">`;
+    g.forEach(d=>{
+      const idx=liveDeals.indexOf(d);
+      const st=d.studios!=null?`${d.studios}s / ${d.ensuite!=null?d.ensuite:'—'}e`:(d.ensuite!=null?`${d.ensuite}e`:'');
+      html+=`<div class="deal-card" onclick="openModal(${idx})">
+        <div class="deal-card-top"><div class="deal-address">${d.address||'—'}</div><span class="deal-status-pill ${pillCls(d.status)}">${pillLbl(d.status)}</span></div>
+        <div class="deal-location">${d.neighbourhood?d.neighbourhood+', ':''}<strong>${d.city.replace('London - ','')}</strong></div>
+        <div class="deal-metrics">
+          <div class="metric-box"><div class="metric-label">Beds</div><div class="metric-value">${d.beds||'—'}</div>${st?`<div class="metric-sub">${st}</div>`:''}</div>
+          <div class="metric-box"><div class="metric-label">Land Price</div><div class="metric-value">${d.landPrice?fmt(d.landPrice):'—'}</div>${d.totalCost?`<div class="metric-sub">Cost ${fmt(d.totalCost)}</div>`:''}</div>
+          <div class="metric-box"><div class="metric-label">Equity</div><div class="metric-value">${d.equity?fmt(d.equity):'—'}</div>${d.gdv?`<div class="metric-sub">GDV ${fmt(d.gdv)}</div>`:''}</div>
+        </div>
+        <div class="deal-tags">
+          ${d.marketing?`<span class="tag">${d.marketing}</span>`:''}
+          ${d.ptal?`<span class="tag gold-tag">${d.ptal}</span>`:''}
+          ${d.developer?`<span class="tag">${d.developer}</span>`:''}
+          ${d.intake?`<span class="deal-intake">AY ${d.intake}</span>`:''}
+        </div>
+        ${d.notes?`<div class="deal-notes">${d.notes}</div>`:''}
+        <div class="card-hint">Click for full details →</div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+  document.getElementById('cardsView').innerHTML=html||`<div style="text-align:center;padding:60px;color:var(--text-dim);border:1px dashed var(--cream-dark);background:white">No deals match the current filters</div>`;
+}
+
+// ── TABLE ─────────────────────────────────────────────────────────────────────
+function renderTable(data) {
+  const order=['Acquired','Exclusivity','Advanced Discussions','Early Discussions','Potential Opportunities','On Hold'];
+  const sorted=[...data].sort((a,b)=>order.indexOf(a.status)-order.indexOf(b.status));
+  let html='',lastS=null;
+  sorted.forEach(d=>{
+    const idx=liveDeals.indexOf(d);
+    if(d.status!==lastS){html+=`<tr class="tbl-section"><td colspan="12">${d.status}</td></tr>`;lastS=d.status;}
+    html+=`<tr onclick="openModal(${idx})">
+      <td><span class="deal-status-pill ${pillCls(d.status)}" style="font-size:10px">${pillLbl(d.status)}</span></td>
+      <td style="font-weight:500">${d.address||'—'}</td>
+      <td class="muted">${d.neighbourhood?d.neighbourhood+', ':''}${d.city}</td>
+      <td style="font-weight:600">${d.beds||'—'}</td>
+      <td class="right muted">${fmt(d.landPrice)}</td>
+      <td class="right muted">${fmt(d.totalCost)}</td>
+      <td class="right">${fmt(d.gdv)}</td>
+      <td class="right" style="font-weight:500">${fmt(d.equity)}</td>
+      <td class="right muted">${fmtYoc(d.yoc)}</td>
+      <td class="muted">${d.developer||'—'}</td>
+      <td class="muted">${d.intake||'—'}</td>
+      <td class="muted" style="font-size:11px">${d.planning||'—'}</td>
+    </tr>`;
+  });
+  document.getElementById('tableBody').innerHTML=html||'<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-dim)">No results</td></tr>';
+}
+
+// ── DECLINED ──────────────────────────────────────────────────────────────────
+function renderDeclined(data) {
+  let html='';
+  data.forEach(d=>{
+    const pc=d.status==='Lost'?'pill-lost':'pill-declined';
+    html+=`<tr><td><span class="deal-status-pill ${pc}" style="font-size:10px">${d.status}</span></td>
+      <td style="font-weight:500">${d.address||'—'}</td><td class="muted">${d.city}</td>
+      <td class="muted">${d.area||'—'}</td><td>${d.beds||'—'}</td>
+      <td class="muted" style="font-size:12px">${d.type||'—'}</td>
+      <td class="muted" style="font-size:12px">${d.seller||'—'}</td>
+      <td class="right muted">${fmt(d.landPrice)}</td></tr>`;
+  });
+  document.getElementById('declinedBody').innerHTML=html||'<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-dim)">No results</td></tr>';
+}
+
+// ── NEXT ACTIONS ──────────────────────────────────────────────────────────────
+function renderActions(filter) {
+  const activeStatuses=['Acquired','Exclusivity','Advanced Discussions','Early Discussions'];
+  const active=liveDeals.filter(d=>activeStatuses.includes(d.status));
+  const lbl={red:'Urgent',amber:'Needs Attention',green:'In Hand'};
+  const data=filter==='all'?active:active.filter(d=>(RAG_DEFAULTS[d.status]||'green')===filter);
+  let html='';
+  data.forEach(d=>{
+    const rag=RAG_DEFAULTS[d.status]||'green';
+    const city=d.neighbourhood?d.neighbourhood+' · '+d.city.replace('London - Zone ','Z'):d.city;
+    html+=`<div class="action-card"><div class="action-stripe stripe-${rag}"></div><div class="action-body">
+      <div class="action-card-top">
+        <div><div class="action-addr">${d.address}</div><div class="action-city-txt">${city}</div></div>
+        <div class="action-rag-badge"><span class="rag-dot rag-${rag}"></span><span style="color:var(--text-dim)">${lbl[rag]}</span></div>
+      </div>
+      <div class="action-text-box empty">Next action to be populated via shared tracker</div>
+      <div class="action-footer">
+        <span class="deal-status-pill ${pillCls(d.status)}" style="font-size:10px">${pillLbl(d.status)}</span>
+        <span class="action-beds-txt">${d.beds||'—'} beds</span>
+      </div>
+    </div></div>`;
+  });
+  document.getElementById('actionsCards').innerHTML=html||`<div style="text-align:center;padding:60px;color:var(--text-dim);border:1px dashed var(--cream-dark);background:white;grid-column:1/-1">No actions in this category</div>`;
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openModal(idx) {
+  const d=liveDeals[idx];
+  document.getElementById('modalPill').innerHTML=`<span class="deal-status-pill ${pillCls(d.status)}">${pillLbl(d.status)}</span>`;
+  document.getElementById('modalAddress').textContent=d.address||'—';
+  document.getElementById('modalLocation').innerHTML=`${d.neighbourhood?d.neighbourhood+', ':''}${d.city}${d.ptal?' &nbsp;·&nbsp; '+d.ptal:''}`;
+  function row(label,value){const empty=!value&&value!==0;return`<div class="modal-detail-item"><div class="modal-detail-label">${label}</div><div class="modal-detail-value${empty?' empty':''}">${empty?'Not available':value}</div></div>`;}
+  document.getElementById('modalBody').innerHTML=`
+    <div class="modal-section-title">Financials</div>
+    <div class="modal-fin-grid">
+      <div class="modal-fin-box"><div class="modal-fin-label">Land Price</div><div class="modal-fin-value">${fmt(d.landPrice)}</div><div class="modal-fin-sub">${fmtFull(d.landPrice)}</div></div>
+      <div class="modal-fin-box"><div class="modal-fin-label">Total Levered Cost</div><div class="modal-fin-value">${fmt(d.totalCost)}</div><div class="modal-fin-sub">${fmtFull(d.totalCost)}</div></div>
+      <div class="modal-fin-box"><div class="modal-fin-label">GDV</div><div class="modal-fin-value">${fmt(d.gdv)}</div><div class="modal-fin-sub">${fmtFull(d.gdv)}</div></div>
+      <div class="modal-fin-box"><div class="modal-fin-label">Equity Required</div><div class="modal-fin-value">${fmt(d.equity)}</div><div class="modal-fin-sub">YoC: ${fmtYoc(d.yoc)}</div></div>
+    </div>
+    <div class="modal-section-title">Bed Split</div>
+    <div class="modal-bed-split">
+      <div class="modal-bed-box"><div class="modal-bed-num">${d.beds||'—'}</div><div class="modal-bed-lbl">Total Beds</div></div>
+      <div class="modal-bed-box"><div class="modal-bed-num">${d.studios!=null?d.studios:'—'}</div><div class="modal-bed-lbl">Studios</div></div>
+      <div class="modal-bed-box"><div class="modal-bed-num">${d.ensuite!=null?d.ensuite:'—'}</div><div class="modal-bed-lbl">Ensuite</div></div>
+    </div>
+    <div class="modal-section-title">Deal Details</div>
+    <div class="modal-details-grid">
+      ${row('Full Address',d.address)}
+      ${row('Developer',d.developer)}
+      ${row('Seller / Vendor',d.seller)}
+      ${row('Marketing',d.marketing)}
+      ${row('Deal Type',d.type)}
+      ${row('Planning Status',d.planning)}
+      ${row('Intake Date (AY)',d.intake)}
+      ${row('Gateway 2',d.gateway)}
+      ${row('PTAL Rating',d.ptal)}
+      ${row('GIA (Sq. ft.)',d.gia?d.gia.toLocaleString():null)}
+      ${d.vcName?row('VC Scheme Name',d.vcName):''}
+    </div>
+    ${d.notes?`<div class="modal-section-title">Notes</div><div class="modal-notes">${d.notes}</div>`:''}`;
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(e){if(e.target===document.getElementById('modalOverlay'))closeModalDirect();}
+function closeModalDirect(){document.getElementById('modalOverlay').classList.remove('open');document.body.style.overflow='';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModalDirect();});
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+let activeStatus='All',activeCity='All',currentView='cards',decActiveCity='All';
+function getFiltered(){
+  const s=(document.getElementById('searchInput')?.value||'').toLowerCase();
+  return liveDeals.filter(d=>{
+    const statusOk=activeStatus==='All'||d.status===activeStatus;
+    const cityOk=activeCity==='All'||cityMatch(d,activeCity);
+    const searchOk=!s||[d.address,d.city,d.seller,d.neighbourhood,d.developer].join(' ').toLowerCase().includes(s);
+    return statusOk&&cityOk&&searchOk;
+  });
+}
+function applyFilters(){const d=getFiltered();renderCards(d);renderTable(d);}
+function setStatus(s,btn){activeStatus=s;document.querySelectorAll('#statusPills .pill-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyFilters();}
+function setCity(c,btn){activeCity=activeCity===c?'All':c;document.querySelectorAll('#cityPills .pill-btn').forEach(b=>b.classList.remove('city-active'));if(activeCity!=='All')btn.classList.add('city-active');applyFilters();}
+function applyDeclinedFilters(){
+  const s=(document.getElementById('decSearch')?.value||'').toLowerCase();
+  renderDeclined(declinedDeals.filter(d=>(decActiveCity==='All'||d.city===decActiveCity)&&(!s||[d.address,d.city,d.area,d.seller].join(' ').toLowerCase().includes(s))));
+}
+function setDecCity(c,btn){decActiveCity=c;document.querySelectorAll('#decCityPills .pill-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyDeclinedFilters();}
+function filterActions(f,btn){document.querySelectorAll('.rag-pill-btn').forEach(b=>b.className='rag-pill-btn');btn.classList.add('rag-active-'+f);renderActions(f);}
+function setView(v){currentView=v;document.getElementById('cardsView').style.display=v==='cards'?'block':'none';document.getElementById('tableView').style.display=v==='table'?'block':'none';document.getElementById('cardsBtn').classList.toggle('active',v==='cards');document.getElementById('tableBtn').classList.toggle('active',v==='table');}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+  document.getElementById('mainFilters').style.display=name==='pipeline'?'flex':'none';
+  document.getElementById('decFilters').style.display=name==='declined'?'flex':'none';
+}
+function switchTabByName(name){const btns=document.querySelectorAll('.tab-btn');['pipeline','declined','actions'].forEach((n,i)=>{if(n===name)switchTab(n,btns[i]);});}
+
+// ── PASSWORD ──────────────────────────────────────────────────────────────────
+function checkPw(){
+  if(document.getElementById('pwInput').value==='PBSA2026'){
+    document.getElementById('gate').style.display='none';
+    loadSheetData();
+  } else {
+    document.getElementById('pwError').style.display='block';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+// Init declined (static) immediately; live data loads after password
+renderDeclined(declinedDeals);
+</script>
+</body>
+</html>
